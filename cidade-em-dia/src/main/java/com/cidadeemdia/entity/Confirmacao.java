@@ -1,16 +1,18 @@
 package com.cidadeemdia.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "confirmacoes")
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "confirmacoes",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"ocorrencia_id", "usuario_id"}))
 @Getter
 @Setter
-@ToString
+@NoArgsConstructor
 public class Confirmacao {
 
     @Id
@@ -18,16 +20,20 @@ public class Confirmacao {
     private Long id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "ocorrencia_id", nullable = false)
+    @JoinColumn(name = "ocorrencia_id")
     private Ocorrencia ocorrencia;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "usuario_id")
     private Usuario usuario;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime dataCriacao = LocalDateTime.now();
-
-    @Column(length = 255)
     private String comentario;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime dataCriacao;
+
+    @PrePersist
+    void antesDeSalvar() {
+        dataCriacao = LocalDateTime.now();
+    }
 }

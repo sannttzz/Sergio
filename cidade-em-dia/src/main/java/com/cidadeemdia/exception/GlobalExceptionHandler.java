@@ -1,78 +1,72 @@
 package com.cidadeemdia.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(RecursoNaoEncontradoException.class)
-    public ResponseEntity<ErroResponse> tratarRecursoNaoEncontrado(
-            RecursoNaoEncontradoException ex,
-            WebRequest request) {
-        
-        ErroResponse erro = new ErroResponse(
-            ex.getMessage(),
-            HttpStatus.NOT_FOUND
-        );
-        
-        return new ResponseEntity<>(erro, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ErroResponse> naoEncontrado(RecursoNaoEncontradoException ex) {
+        return resposta(HttpStatus.NOT_FOUND, ex.getMessage());
     }
-    
-    @ExceptionHandler(ViolacaoRegraNegocionException.class)
-    public ResponseEntity<ErroResponse> tratarViolacaoRegraNegocio(
-            ViolacaoRegraNegocionException ex,
-            WebRequest request) {
-        
-        ErroResponse erro = new ErroResponse(
-            ex.getMessage(),
-            HttpStatus.CONFLICT
-        );
-        
-        return new ResponseEntity<>(erro, HttpStatus.CONFLICT);
+
+    @ExceptionHandler(ViolacaoRegraNegocioException.class)
+    public ResponseEntity<ErroResponse> regraNegocio(ViolacaoRegraNegocioException ex) {
+        return resposta(HttpStatus.CONFLICT, ex.getMessage());
     }
-    
-    @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex,
-            org.springframework.http.HttpHeaders headers,
-            HttpStatus status,
-            WebRequest request) {
-        
-        Map<String, String> erros = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            erros.put(fieldName, errorMessage);
-        });
-        
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", java.time.LocalDateTime.now());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("error", "Validação falhou");
-        body.put("erros", erros);
-        
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+
+    // nome/email duplicado, por exemplo
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroResponse> integridade(DataIntegrityViolationException ex) {
+        return resposta(HttpStatus.CONFLICT, "Já existe um registro com esses dados");
     }
-    
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErroResponse> validacao(MethodArgumentNotValidException ex) {
+        Map<String, String> campos = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(e -> campos.put(e.getField(), e.getDefaultMessage()));
+
+        var erro = new ErroResponse(LocalDateTime.now(), 400, "Bad Request",
+                "Dados inválidos", campos);
+        return ResponseEntity.badRequest().body(erro);
+    }
+
+    // JSON malformado ou valor de enum inexistente no corpo
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErroResponse> corpoIlegivel(HttpMessageNotReadableException ex) {
+        return resposta(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido ou com valor não reconhecido");
+    }
+
+    // valor de enum inexistente na URL (ex.: /status/XYZ)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErroResponse> parametroInvalido(MethodArgumentTypeMismatchException ex) {
+        return resposta(HttpStatus.BAD_REQUEST, "Valor inválido para o parâmetro '" + ex.getName() + "'");
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErroResponse> tratarExcecaoGeral(
-            Exception ex,
-            WebRequest request) {
-        
-        ErroResponse erro = new ErroResponse(
-            "Erro interno do servidor: " + ex.getMessage(),
-            HttpStatus.INTERNAL_SERVER_ERROR
-        );
-        
-        return new ResponseEntity<>(erro, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ErroResponse> inesperado(Exception ex) {
+        log.error("Erro inesperado", ex);
+        return resposta(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno do servidor");
+    }
+
+    private ResponseEntity<ErroResponse> resposta(HttpStatus status, String mensagem) {
+        return ResponseEntity.status(status)
+                .body(new ErroResponse(status.value(), status.getReasonPhrase(), mensagem));
     }
 }

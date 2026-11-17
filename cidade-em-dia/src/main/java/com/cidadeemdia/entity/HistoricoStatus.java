@@ -1,29 +1,28 @@
 package com.cidadeemdia.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "historicos_status")
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
-@ToString
+@NoArgsConstructor
 public class HistoricoStatus {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @ManyToOne(optional = false)
-    @JoinColumn(name = "ocorrencia_id", nullable = false)
+    @JoinColumn(name = "ocorrencia_id")
     private Ocorrencia ocorrencia;
-
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -33,17 +32,21 @@ public class HistoricoStatus {
     @Column(nullable = false)
     private Ocorrencia.Status statusNovo;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime data = LocalDateTime.now();
-
-    @Column(length = 255)
     private String motivo;
+
+    // quem fez a alteração (login do Spring Security) e com qual perfil
+    @Column(nullable = false)
+    private String responsavel;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Perfil perfilQueAlterou;
+    private Usuario.Perfil perfilResponsavel;
 
-    public enum Perfil {
-        CIDADAO, ATENDENTE, ADMIN
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime data;
+
+    @PrePersist
+    void antesDeSalvar() {
+        data = LocalDateTime.now();
     }
 }

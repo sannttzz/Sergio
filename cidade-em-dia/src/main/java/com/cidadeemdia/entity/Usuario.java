@@ -1,39 +1,35 @@
 package com.cidadeemdia.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuarios")
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
-@ToString
+@NoArgsConstructor
 public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Nome é obrigatório")
-    @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
     @Column(nullable = false, length = 100)
     private String nome;
 
-    @NotBlank(message = "Email é obrigatório")
-    @Email(message = "Email deve ser válido")
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @NotBlank(message = "Senha é obrigatória")
-    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
-    @Column(nullable = false, length = 255)
+    // nunca devolver o hash na resposta
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(nullable = false)
     private String senha;
 
-    @NotNull(message = "Perfil é obrigatório")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Perfil perfil;
@@ -42,14 +38,19 @@ public class Usuario {
     private Boolean ativo = true;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime dataCriacao = LocalDateTime.now();
+    private LocalDateTime dataCriacao;
 
-    @Column(nullable = false)
-    private LocalDateTime dataAtualizacao = LocalDateTime.now();
+    private LocalDateTime dataAtualizacao;
+
+    @PrePersist
+    void antesDeSalvar() {
+        dataCriacao = LocalDateTime.now();
+        dataAtualizacao = dataCriacao;
+    }
 
     @PreUpdate
-    protected void onUpdate() {
-        this.dataAtualizacao = LocalDateTime.now();
+    void antesDeAtualizar() {
+        dataAtualizacao = LocalDateTime.now();
     }
 
     public enum Perfil {

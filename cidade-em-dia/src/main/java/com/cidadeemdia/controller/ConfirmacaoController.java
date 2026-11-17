@@ -4,61 +4,53 @@ import com.cidadeemdia.dto.ConfirmacaoDTO;
 import com.cidadeemdia.entity.Confirmacao;
 import com.cidadeemdia.service.ConfirmacaoService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/confirmacoes")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@RequiredArgsConstructor
 public class ConfirmacaoController {
-    
-    @Autowired
-    private ConfirmacaoService confirmacaoService;
-    
+
+    private final ConfirmacaoService service;
+
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE', 'CIDADAO')")
     public ResponseEntity<Confirmacao> criar(@Valid @RequestBody ConfirmacaoDTO dto) {
-        Confirmacao confirmacao = confirmacaoService.criar(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(confirmacao);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(dto));
     }
-    
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE', 'CIDADAO')")
-    public ResponseEntity<Confirmacao> obterPorId(@PathVariable Long id) {
-        Confirmacao confirmacao = confirmacaoService.obterPorId(id);
-        return ResponseEntity.ok(confirmacao);
+    public Confirmacao buscar(@PathVariable Long id) {
+        return service.obterPorId(id);
     }
-    
+
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE', 'CIDADAO')")
-    public ResponseEntity<List<Confirmacao>> listar() {
-        List<Confirmacao> confirmacoes = confirmacaoService.listar();
-        return ResponseEntity.ok(confirmacoes);
+    public List<Confirmacao> listar() {
+        return service.listar();
     }
-    
+
     @GetMapping("/ocorrencia/{ocorrenciaId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE', 'CIDADAO')")
-    public ResponseEntity<List<Confirmacao>> listarPorOcorrencia(@PathVariable Long ocorrenciaId) {
-        List<Confirmacao> confirmacoes = confirmacaoService.listarPorOcorrencia(ocorrenciaId);
-        return ResponseEntity.ok(confirmacoes);
+    public List<Confirmacao> listarPorOcorrencia(@PathVariable Long ocorrenciaId) {
+        return service.listarPorOcorrencia(ocorrenciaId);
     }
-    
+
     @GetMapping("/usuario/{usuarioId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE', 'CIDADAO')")
-    public ResponseEntity<List<Confirmacao>> listarPorUsuario(@PathVariable Long usuarioId) {
-        List<Confirmacao> confirmacoes = confirmacaoService.listarPorUsuario(usuarioId);
-        return ResponseEntity.ok(confirmacoes);
+    public List<Confirmacao> listarPorUsuario(@PathVariable Long usuarioId) {
+        return service.listarPorUsuario(usuarioId);
     }
-    
+
+    @PutMapping("/{id}")
+    public Confirmacao atualizar(@PathVariable Long id, @Valid @RequestBody ConfirmacaoDTO dto) {
+        return service.atualizar(id, dto);
+    }
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
-        confirmacaoService.excluir(id);
+        service.excluir(id);
         return ResponseEntity.noContent().build();
     }
 }

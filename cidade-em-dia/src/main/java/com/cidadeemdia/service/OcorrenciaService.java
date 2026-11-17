@@ -1,16 +1,16 @@
 package com.cidadeemdia.service;
 
-import com.cidadeemdia.dto.OcorrenciaDTO;
 import com.cidadeemdia.dto.AlterarStatusDTO;
-import com.cidadeemdia.entity.Ocorrencia;
+import com.cidadeemdia.dto.OcorrenciaDTO;
 import com.cidadeemdia.entity.Categoria;
-import com.cidadeemdia.entity.Usuario;
 import com.cidadeemdia.entity.HistoricoStatus;
+import com.cidadeemdia.entity.Ocorrencia;
+import com.cidadeemdia.entity.Usuario;
 import com.cidadeemdia.exception.RecursoNaoEncontradoException;
-import com.cidadeemdia.exception.ViolacaoRegraNegocionException;
-import com.cidadeemdia.repository.OcorrenciaRepository;
+import com.cidadeemdia.exception.ViolacaoRegraNegocioException;
 import com.cidadeemdia.repository.HistoricoStatusRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.cidadeemdia.repository.OcorrenciaRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,124 +18,108 @@ import java.util.List;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class OcorrenciaService {
-    
-    @Autowired
-    private OcorrenciaRepository ocorrenciaRepository;
-    
-    @Autowired
-    private HistoricoStatusRepository historicoRepository;
-    
-    @Autowired
-    private CategoriaService categoriaService;
-    
-    @Autowired
-    private UsuarioService usuarioService;
-    
+
+    private final OcorrenciaRepository repository;
+    private final HistoricoStatusRepository historicoRepository;
+    private final CategoriaService categoriaService;
+    private final UsuarioService usuarioService;
+
+    // Regra de negócio: não se registra ocorrência em categoria inativa
     public Ocorrencia criar(OcorrenciaDTO dto) {
         Categoria categoria = categoriaService.obterPorId(dto.categoriaId());
-        Usuario autor = usuarioService.obterPorId(dto.autorId());
-        
-        /**
-         * REGRA DE NEGÓCIO 2: Categoria deve estar ativa para permitir novas ocorrências
-         */
         if (!categoria.getAtiva()) {
-            throw new ViolacaoRegraNegocionException(
-                "Não é possível registrar ocorrência na categoria '" + categoria.getNome() + 
-                "' pois ela está inativa"
-            );
+            throw new ViolacaoRegraNegocioException(
+                    "A categoria '" + categoria.getNome() + "' está inativa e não aceita novas ocorrências");
         }
-        
+
         Ocorrencia ocorrencia = new Ocorrencia();
-        ocorrencia.setTitulo(dto.titulo());
-        ocorrencia.setDescricao(dto.descricao());
-        ocorrencia.setRua(dto.rua());
-        ocorrencia.setNumero(dto.numero());
-        ocorrencia.setBairro(dto.bairro());
-        ocorrencia.setCidade(dto.cidade());
-        ocorrencia.setReferencia(dto.referencia());
-        ocorrencia.setFoto(dto.foto());
-        ocorrencia.setUrgencia(Ocorrencia.Urgencia.valueOf(dto.urgencia()));
-        ocorrencia.setPrioridade(Ocorrencia.Prioridade.valueOf(dto.prioridade()));
-        ocorrencia.setStatus(Ocorrencia.Status.NOVA);
+        preencher(ocorrencia, dto);
         ocorrencia.setCategoria(categoria);
-        ocorrencia.setAutor(autor);
-        
-        return ocorrenciaRepository.save(ocorrencia);
+        ocorrencia.setAutor(usuarioService.obterPorId(dto.autorId()));
+        return repository.save(ocorrencia);
     }
-    
+
     public Ocorrencia obterPorId(Long id) {
-        return ocorrenciaRepository.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Ocorrência com ID " + id + " não encontrada"));
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ocorrência " + id + " não encontrada"));
     }
-    
+
     public List<Ocorrencia> listar() {
-        return ocorrenciaRepository.findAllOrderByData();
+        return repository.findAllByOrderByDataCriacaoDesc();
     }
-    
+
     public List<Ocorrencia> listarPorCategoria(Long categoriaId) {
-        return ocorrenciaRepository.findByCategoria(categoriaId);
+        return repository.findByCategoriaIdOrderByDataCriacaoDesc(categoriaId);
     }
-    
-    public List<Ocorrencia> listarPorStatus(String status) {
-        Ocorrencia.Status statusEnum = Ocorrencia.Status.valueOf(status);
-        return ocorrenciaRepository.findByStatus(statusEnum);
+
+    public List<Ocorrencia> listarPorStatus(Ocorrencia.Status status) {
+        return repository.buscarPorStatus(status);
     }
-    
+
     public List<Ocorrencia> listarPorAutor(Long autorId) {
-        return ocorrenciaRepository.findByAutor(autorId);
+        return repository.findByAutorIdOrderByDataCriacaoDesc(autorId);
     }
-    
-    public List<Ocorrencia> listarPorUrgencia(String urgencia) {
-        Ocorrencia.Urgencia urgenciaEnum = Ocorrencia.Urgencia.valueOf(urgencia);
-        return ocorrenciaRepository.findByUrgencia(urgenciaEnum);
+
+    public List<Ocorrencia> listarPorUrgencia(Ocorrencia.Urgencia urgencia) {
+        return repository.buscarPorUrgencia(urgencia);
     }
-    
+
+    public List<HistoricoStatus> listarHistorico(Long ocorrenciaId) {
+        obterPorId(ocorrenciaId); // garante o 404 se a ocorrência não existir
+        return historicoRepository.findByOcorrenciaIdOrderByDataDesc(ocorrenciaId);
+    }
+
     public Ocorrencia atualizar(Long id, OcorrenciaDTO dto) {
         Ocorrencia ocorrencia = obterPorId(id);
-        ocorrencia.setTitulo(dto.titulo());
-        ocorrencia.setDescricao(dto.descricao());
-        ocorrencia.setRua(dto.rua());
-        ocorrencia.setNumero(dto.numero());
-        ocorrencia.setBairro(dto.bairro());
-        ocorrencia.setCidade(dto.cidade());
-        ocorrencia.setReferencia(dto.referencia());
-        ocorrencia.setFoto(dto.foto());
-        ocorrencia.setUrgencia(Ocorrencia.Urgencia.valueOf(dto.urgencia()));
-        ocorrencia.setPrioridade(Ocorrencia.Prioridade.valueOf(dto.prioridade()));
-        
-        return ocorrenciaRepository.save(ocorrencia);
+        preencher(ocorrencia, dto);
+        return repository.save(ocorrencia);
     }
-    
-    /**
-     * Funcionalidade específica: Alterar status de ocorrência com registro em histórico
-     */
-    public Ocorrencia alterarStatus(Long id, AlterarStatusDTO dto, Usuario usuarioAtual) {
+
+    // Funcionalidade específica do PI: andamento da ocorrência com histórico
+    public Ocorrencia alterarStatus(Long id, AlterarStatusDTO dto, String responsavel, Usuario.Perfil perfil) {
         Ocorrencia ocorrencia = obterPorId(id);
-        Ocorrencia.Status statusNovo = Ocorrencia.Status.valueOf(dto.statusNovo());
-        Ocorrencia.Status statusAnterior = ocorrencia.getStatus();
-        
-        ocorrencia.setStatus(statusNovo);
-        Ocorrencia ocorrenciaAtualizada = ocorrenciaRepository.save(ocorrencia);
-        
-        // Registrar no histórico
+        Ocorrencia.Status anterior = ocorrencia.getStatus();
+        Ocorrencia.Status novo = dto.statusNovo();
+
+        // Regra de negócio: ocorrência resolvida está encerrada
+        if (anterior == Ocorrencia.Status.RESOLVIDA) {
+            throw new ViolacaoRegraNegocioException("Ocorrência já resolvida não pode mudar de status");
+        }
+        if (anterior == novo) {
+            throw new ViolacaoRegraNegocioException("A ocorrência já está com o status " + novo);
+        }
+
+        ocorrencia.setStatus(novo);
+        repository.save(ocorrencia);
+
         HistoricoStatus historico = new HistoricoStatus();
-        historico.setOcorrencia(ocorrenciaAtualizada);
-        historico.setUsuario(usuarioAtual);
-        historico.setStatusAnterior(statusAnterior);
-        historico.setStatusNovo(statusNovo);
+        historico.setOcorrencia(ocorrencia);
+        historico.setStatusAnterior(anterior);
+        historico.setStatusNovo(novo);
         historico.setMotivo(dto.motivo());
-        historico.setPerfilQueAlterou(
-            HistoricoStatus.Perfil.valueOf(usuarioAtual.getPerfil().toString())
-        );
-        
+        historico.setResponsavel(responsavel);
+        historico.setPerfilResponsavel(perfil);
         historicoRepository.save(historico);
-        
-        return ocorrenciaAtualizada;
+
+        return ocorrencia;
     }
-    
+
     public void excluir(Long id) {
-        Ocorrencia ocorrencia = obterPorId(id);
-        ocorrenciaRepository.delete(ocorrencia);
+        repository.delete(obterPorId(id));
+    }
+
+    private void preencher(Ocorrencia o, OcorrenciaDTO dto) {
+        o.setTitulo(dto.titulo());
+        o.setDescricao(dto.descricao());
+        o.setRua(dto.rua());
+        o.setNumero(dto.numero());
+        o.setBairro(dto.bairro());
+        o.setCidade(dto.cidade());
+        o.setReferencia(dto.referencia());
+        o.setFoto(dto.foto());
+        o.setUrgencia(dto.urgencia());
+        o.setPrioridade(dto.prioridade());
     }
 }

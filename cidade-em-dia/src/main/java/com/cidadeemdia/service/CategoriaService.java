@@ -3,9 +3,9 @@ package com.cidadeemdia.service;
 import com.cidadeemdia.dto.CategoriaDTO;
 import com.cidadeemdia.entity.Categoria;
 import com.cidadeemdia.exception.RecursoNaoEncontradoException;
-import com.cidadeemdia.exception.ViolacaoRegraNegocionException;
+import com.cidadeemdia.exception.ViolacaoRegraNegocioException;
 import com.cidadeemdia.repository.CategoriaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,55 +13,53 @@ import java.util.List;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class CategoriaService {
-    
-    @Autowired
-    private CategoriaRepository categoriaRepository;
-    
+
+    private final CategoriaRepository repository;
+
     public Categoria criar(CategoriaDTO dto) {
         Categoria categoria = new Categoria();
         categoria.setNome(dto.nome());
         categoria.setDescricao(dto.descricao());
-        categoria.setAtiva(dto.ativa() != null ? dto.ativa() : true);
-        
-        return categoriaRepository.save(categoria);
+        if (dto.ativa() != null) {
+            categoria.setAtiva(dto.ativa());
+        }
+        return repository.save(categoria);
     }
-    
+
     public Categoria obterPorId(Long id) {
-        return categoriaRepository.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria com ID " + id + " não encontrada"));
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria " + id + " não encontrada"));
     }
-    
+
     public List<Categoria> listar() {
-        return categoriaRepository.findAll();
+        return repository.findAll();
     }
-    
+
     public List<Categoria> listarAtivas() {
-        return categoriaRepository.findByAtivaTrue();
+        return repository.findByAtivaTrue();
     }
-    
+
     public Categoria atualizar(Long id, CategoriaDTO dto) {
         Categoria categoria = obterPorId(id);
         categoria.setNome(dto.nome());
         categoria.setDescricao(dto.descricao());
-        categoria.setAtiva(dto.ativa() != null ? dto.ativa() : categoria.getAtiva());
-        
-        return categoriaRepository.save(categoria);
+        if (dto.ativa() != null) {
+            categoria.setAtiva(dto.ativa());
+        }
+        return repository.save(categoria);
     }
-    
-    /**
-     * REGRA DE NEGÓCIO 1: Não permitir exclusão de categoria que possui ocorrências associadas
-     */
+
+    // Regra de negócio: categoria com ocorrências não pode ser excluída
     public void excluir(Long id) {
         Categoria categoria = obterPorId(id);
-        
-        if (categoria.getOcorrencias() != null && !categoria.getOcorrencias().isEmpty()) {
-            throw new ViolacaoRegraNegocionException(
-                "Não é possível excluir a categoria '" + categoria.getNome() + 
-                "' pois ela possui " + categoria.getOcorrencias().size() + " ocorrência(s) associada(s)"
-            );
+
+        int total = categoria.getOcorrencias().size();
+        if (total > 0) {
+            throw new ViolacaoRegraNegocioException(
+                    "A categoria '" + categoria.getNome() + "' tem " + total + " ocorrência(s) e não pode ser excluída");
         }
-        
-        categoriaRepository.delete(categoria);
+        repository.delete(categoria);
     }
 }
