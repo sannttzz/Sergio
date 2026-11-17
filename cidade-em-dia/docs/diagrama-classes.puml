@@ -1,0 +1,121 @@
+@startuml Diagrama de Classes - Cidade em Dia
+
+class Usuario {
+  - id: Long
+  - nome: String
+  - email: String
+  - senha: String
+  - perfil: Perfil (enum)
+  - ativo: Boolean
+  - dataCriacao: LocalDateTime
+  - dataAtualizacao: LocalDateTime
+  --
+  + criar()
+  + atualizar()
+  + excluir()
+}
+
+class Categoria {
+  - id: Long
+  - nome: String
+  - descricao: String
+  - ativa: Boolean
+  - dataCriacao: LocalDateTime
+  - dataAtualizacao: LocalDateTime
+  - ocorrencias: List<Ocorrencia>
+  --
+  + criar()
+  + atualizar()
+  + excluir()
+}
+
+class Ocorrencia {
+  - id: Long
+  - titulo: String
+  - descricao: String
+  - rua: String
+  - numero: String
+  - bairro: String
+  - cidade: String
+  - referencia: String
+  - foto: String
+  - urgencia: Urgencia (enum)
+  - prioridade: Prioridade (enum)
+  - status: Status (enum)
+  - dataCriacao: LocalDateTime
+  - dataAtualizacao: LocalDateTime
+  - confirmacoes: List<Confirmacao>
+  - historicos: List<HistoricoStatus>
+  --
+  + criar()
+  + atualizar()
+  + alterarStatus()
+  + excluir()
+  + getTotalConfirmacoes()
+}
+
+class Confirmacao {
+  - id: Long
+  - comentario: String
+  - dataCriacao: LocalDateTime
+  --
+  + criar()
+  + excluir()
+}
+
+class HistoricoStatus {
+  - id: Long
+  - statusAnterior: Status (enum)
+  - statusNovo: Status (enum)
+  - motivo: String
+  - data: LocalDateTime
+  - perfilQueAlterou: Perfil (enum)
+  --
+  + criar()
+}
+
+enum Perfil {
+  CIDADAO
+  ATENDENTE
+  ADMIN
+}
+
+enum Urgencia {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
+enum Status {
+  NOVA
+  EM_ANALISE
+  EM_ANDAMENTO
+  RESOLVIDA
+}
+
+' Relacionamentos
+Categoria "1" -- "many" Ocorrencia : possui >
+Usuario "1" -- "many" Ocorrencia : cria >
+Ocorrencia "1" -- "many" Confirmacao : tem >
+Ocorrencia "1" -- "many" HistoricoStatus : registra >
+Usuario "many" -- "many" Confirmacao : confirma <
+Usuario "many" -- "many" HistoricoStatus : altera <
+
+Ocorrencia *-- Urgencia
+Ocorrencia *-- Prioridade
+Ocorrencia *-- Status
+Usuario *-- Perfil
+HistoricoStatus *-- Status
+HistoricoStatus *-- Perfil
+
+@enduml
+
+' Para gerar o diagrama, use:
+' 1. Online: http://www.plantuml.com/plantuml/uml/
+' 2. Localmente: plantuml -Tpng diagrama-classes.puml -o diagrama-classes.png

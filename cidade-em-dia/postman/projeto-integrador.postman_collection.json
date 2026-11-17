@@ -1,0 +1,174 @@
+﻿{
+  "info": {
+    "_postman_id": "cidade-em-dia-api",
+    "name": "Cidade em Dia - API",
+    "description": "Testes da API do projeto Cidade em Dia",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Login como CIDADAO",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "cidadao"},
+                {"key": "password", "value": "senha123"}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/categorias", "host": ["{{base_url}}"], "path": ["categorias"]}
+          }
+        },
+        {
+          "name": "Login como ATENDENTE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "atendente"},
+                {"key": "password", "value": "senha456"}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/categorias", "host": ["{{base_url}}"], "path": ["categorias"]}
+          }
+        },
+        {
+          "name": "Login como ADMIN",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "admin"},
+                {"key": "password", "value": "admin123"}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/usuarios", "host": ["{{base_url}}"], "path": ["usuarios"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuários",
+      "item": [
+        {
+          "name": "Criar Usuário (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "admin"},
+                {"key": "password", "value": "admin123"}
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nome\": \"João Silva\", \"email\": \"joao@example.com\", \"senha\": \"senha123\", \"perfil\": \"CIDADAO\", \"ativo\": true}"
+            },
+            "url": {"raw": "{{base_url}}/usuarios", "host": ["{{base_url}}"], "path": ["usuarios"]}
+          }
+        },
+        {
+          "name": "Listar Usuários",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "basic",
+              "basic": [{"key": "username", "value": "admin"}, {"key": "password", "value": "admin123"}]
+            },
+            "url": {"raw": "{{base_url}}/usuarios", "host": ["{{base_url}}"], "path": ["usuarios"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorias",
+      "item": [
+        {
+          "name": "Criar Categoria",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "atendente"},
+                {"key": "password", "value": "senha456"}
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nome\": \"Infraestrutura\", \"descricao\": \"Problemas de infraestrutura urbana\", \"ativa\": true}"
+            },
+            "url": {"raw": "{{base_url}}/categorias", "host": ["{{base_url}}"], "path": ["categorias"]}
+          }
+        },
+        {
+          "name": "Listar Categorias",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "cidadao"},
+                {"key": "password", "value": "senha123"}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/categorias", "host": ["{{base_url}}"], "path": ["categorias"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ocorrências",
+      "item": [
+        {
+          "name": "Criar Ocorrência",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "cidadao"},
+                {"key": "password", "value": "senha123"}
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titulo\": \"Buraco na rua\", \"descricao\": \"Há um buraco grande na Rua Principal\", \"rua\": \"Rua Principal\", \"numero\": \"123\", \"bairro\": \"Centro\", \"cidade\": \"São Paulo\", \"referencia\": \"Próximo ao semáforo\", \"urgencia\": \"ALTA\", \"prioridade\": \"ALTA\", \"categoriaId\": 1, \"autorId\": 1}"
+            },
+            "url": {"raw": "{{base_url}}/ocorrencias", "host": ["{{base_url}}"], "path": ["ocorrencias"]}
+          }
+        },
+        {
+          "name": "Listar Ocorrências",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {"key": "username", "value": "cidadao"},
+                {"key": "password", "value": "senha123"}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/ocorrencias", "host": ["{{base_url}}"], "path": ["ocorrencias"]}
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8080/api/v1"}
+  ]
+}
